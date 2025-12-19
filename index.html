@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حيوان / جماد / ∞</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: "Tahoma", sans-serif;
+  background: linear-gradient(135deg,#ff9a9e,#fad0c4);
+  color: #222;
+  text-align: center;
+}
+
+.hidden { display: none; }
+
+button {
+  padding: 12px 20px;
+  margin: 8px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.primary { background:#4CAF50; color:white; }
+.secondary { background:#2196F3; color:white; }
+.danger { background:#f44336; color:white; }
+
+.container {
+  padding: 20px;
+}
+
+h1 { font-size: 36px; margin-bottom: 10px; }
+h2 { margin-top: 0; }
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  min-width: 80px;
+}
+
+textarea {
+  width: 100%;
+  height: 50px;
+  resize: none;
+  border-radius: 6px;
+}
+
+.disabled {
+  background: #eee;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 3px;
+}
+
+.single { background:#f44336; color:white; }
+.double { background:#4CAF50; color:white; }
+
+.crossed {
+  background:#ffcccc;
+  text-decoration: line-through;
+}
+
+.timer {
+  font-size: 22px;
+  margin: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- الصفحة الرئيسية -->
+<div id="home" class="container">
+  <h1>حيوان / جماد / ∞</h1>
+  <h2>حياكم في لعبة حيوان / جماد / ∞</h2>
+  <button class="secondary" onclick="showRules()">قوانين اللعبة</button>
+  <button class="primary" onclick="startGame()">بدء اللعبة</button>
+</div>
+
+<!-- صفحة القوانين -->
+<div id="rules" class="container hidden">
+  <h2>قوانين لعبة جماد حيوان (النظام المطوّر)</h2>
+  <p style="text-align:right; line-height:1.8">
+  <b>أولًا:</b> اختيار الحرف<br>
+  يتم اختيار الحرف إما عن طريق البرنامج أو بالاتفاق بين اللاعبين وبالدور.<br><br>
+
+  <b>ثانيًا:</b> بدء الجولة<br>
+  بعد اختيار الحرف، يبدأ جميع اللاعبين بكتابة الإجابات في جميع الفئات المختارة.<br><br>
+
+  <b>ثالثًا:</b> انتهاء الوقت<br>
+  عند انتهاء الوقت، يُمنع الجميع من إضافة أو تعديل أي إجابة.<br><br>
+
+  <b>رابعًا:</b> مراجعة الإجابات<br>
+  يتم شطب الإجابات المتكررة يدويًا حسب نظام النقاط.<br><br>
+
+  <b>نظام النقاط:</b><br>
+  الفردي = 1 نقطة<br>
+  الثنائي = 2 نقاط
+  </p>
+  <button class="primary" onclick="startGame()">بدء اللعبة</button>
+</div>
+
+<!-- صفحة اللعبة -->
+<div id="game" class="container hidden">
+  <div class="timer" id="timer">00:00</div>
+
+  <select id="timeSelect">
+    <option value="60">دقيقة</option>
+    <option value="120">دقيقتان</option>
+    <option value="180">ثلاث دقائق</option>
+  </select>
+  <br>
+  <button class="primary" onclick="startTimer()">بدء</button>
+
+  <div class="table-wrapper">
+    <table id="gameTable"></table>
+  </div>
+
+  <button class="secondary" onclick="calculate()">حساب النقاط</button>
+  <button class="primary" onclick="nextRound()">الجولة التالية</button>
+  <button class="danger" onclick="endGame()">إنهاء اللعبة</button>
+</div>
+
+<!-- صفحة النتيجة -->
+<div id="result" class="container hidden">
+  <h2>النتيجة النهائية</h2>
+  <h1 id="finalScore">0</h1>
+  <button class="primary" onclick="location.reload()">إعادة اللعب</button>
+</div>
+
+<script>
+let timerInterval;
+let timeLeft;
+let totalScore = 0;
+let currentRound = 0;
+
+function showRules(){
+  home.classList.add("hidden");
+  rules.classList.remove("hidden");
+}
+
+function startGame(){
+  home.classList.add("hidden");
+  rules.classList.add("hidden");
+  game.classList.remove("hidden");
+  nextRound();
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timeLeft = parseInt(timeSelect.value);
+  updateTimer();
+  enableInputs(true);
+
+  timerInterval = setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      enableInputs(false);
+      makeClickable();
+    }
+  },1000);
+}
+
+function updateTimer(){
+  let m = Math.floor(timeLeft/60);
+  let s = timeLeft%60;
+  timer.innerText = `${m}:${s.toString().padStart(2,"0")}`;
+}
+
+function nextRound(){
+  currentRound++;
+  const table = document.getElementById("gameTable");
+  const header = document.createElement("tr");
+
+  for(let i=1;i<=10;i++){
+    header.innerHTML += `<th>${i}</th>`;
+  }
+  header.innerHTML += `<th>المجموع</th>`;
+  table.appendChild(header);
+
+  const row = document.createElement("tr");
+  for(let i=0;i<10;i++){
+    row.innerHTML += `
+    <td>
+      <textarea oninput="checkType(this)" disabled></textarea>
+      <div class="badge single">فردي</div>
+    </td>`;
+  }
+  row.innerHTML += `<td class="disabled"></td>`;
+  table.appendChild(row);
+}
+
+function enableInputs(state){
+  document.querySelectorAll("textarea").forEach(t=>{
+    t.disabled = !state;
+  });
+}
+
+function checkType(el){
+  const badge = el.nextElementSibling;
+  if(el.value.includes("\n")){
+    badge.innerText = "ثنائي";
+    badge.className = "badge double";
+  } else {
+    badge.innerText = "فردي";
+    badge.className = "badge single";
+  }
+}
+
+function makeClickable(){
+  document.querySelectorAll("td").forEach(td=>{
+    td.onclick = ()=> td.classList.toggle("crossed");
+  });
+}
+
+function calculate(){
+  let score = 0;
+  document.querySelectorAll("tr:last-child td").forEach((td,i)=>{
+    if(i<10 && !td.classList.contains("crossed")){
+      const badge = td.querySelector(".badge");
+      if(badge?.innerText==="ثنائي") score+=2;
+      else score+=1;
+    }
+  });
+  document.querySelector("tr:last-child td:last-child").innerText = score;
+  totalScore += score;
+}
+
+function endGame(){
+  game.classList.add("hidden");
+  result.classList.remove("hidden");
+  finalScore.innerText = totalScore;
+}
+</script>
+
+</body>
+</html>
